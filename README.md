@@ -15,4 +15,4 @@
 
    模型结构（tips：残差块7个）
 
-   ![model](d:/UserData/gobang/info/net.drawio.svg)
+   ![model](./info/net.drawio.svg)
