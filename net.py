@@ -53,7 +53,7 @@ class Net(nn.Module):
         return F.softmax(policy_x, dim=1), F.tanh(value_x)
 
 class PolicyValueNet:
-    def __init__(self, model_file=None, device=torch.device("cpu")):
+    def __init__(self, model_file=None, device=torch.device("cuda")):
         self.device = device
         self.l2_const = 2e-3
         self.policy_value_net = Net().to(device)
@@ -71,7 +71,7 @@ class PolicyValueNet:
     def policy_value_fn(self, env):
         self.policy_value_net.eval()
         legal_position = env.availables
-        current_state = np.ascontiguousarray(env.state.reshape(-1, 1, 15, 15)).astype(np.float32)
+        current_state = np.ascontiguousarray(env.current_state().reshape(-1, 4, 15, 15)).astype(np.float32)
         current_state = torch.tensor(current_state, dtype=torch.float32).to(self.device)
         log_act_probs, value = self.policy_value_net(current_state)
         act_probs = np.exp(log_act_probs.detach().cpu().numpy().flatten())
@@ -81,7 +81,7 @@ class PolicyValueNet:
     def save_model(self, model_file):
         torch.save(self.policy_value_net.state_dict(), model_file)
     
-    def tarin_step(self, state_batch, mcts_probs, winner_batch, lr=2e-3):
+    def train_step(self, state_batch, mcts_probs, winner_batch, lr=2e-3):
         self.policy_value_net.train()
         state_batch = torch.tensor(state_batch, dtype=torch.float32).to(self.device)
         mcts_probs = torch.tensor(mcts_probs, dtype=torch.float32).to(self.device)
@@ -90,7 +90,7 @@ class PolicyValueNet:
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = lr
         log_act_probs, value = self.policy_value_net(state_batch)
-        value = torch.reshape(value, (-1))
+        value = torch.reshape(value, (-1,))
         value_loss = F.mse_loss(value, winner_batch)
         policy_loss = -torch.mean(mcts_probs * log_act_probs, axis=1)
         loss = value_loss + policy_loss
@@ -104,9 +104,9 @@ if __name__ == '__main__':
     from torchsummary import summary
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = Net().to(device)
-    test_input = torch.rand(8, 1, 15, 15).to(device)
+    test_input = torch.rand(8, 4, 15, 15).to(device)
     x, y = model(test_input)
     print(x.shape)
     print(y.shape)
-    summary(model, (1, 15, 15), device='cuda')
+    summary(model, (4, 15, 15), device='cuda')
 

@@ -129,8 +129,7 @@ class MCTSPlayer:
         return f'MCTS-{self.player}'
     
     def get_action(self, board, temp=1e-3, return_prob=0):
-        sensible_moves = board.availables
-        move_probs = np.zeros(255)
+        move_probs = np.zeros(225)
         acts, probs = self.mcts.get_move_probs(board, temp=temp)
         move_probs[list(acts)] = probs
         if self.is_selfplay:
@@ -138,11 +137,11 @@ class MCTSPlayer:
             self.mcts.update_with_move(move)
         else:
             move = np.random.choice(acts, p=probs)
-            self.mcts.update_with_move(move)
+            self.mcts.update_with_move(-1)
         
         if return_prob:
             return move, move_probs
         else:
             return move
     
-    
+

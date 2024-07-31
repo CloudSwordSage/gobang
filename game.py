@@ -326,13 +326,13 @@ class Game:
             _count += 1
             if _count % 20 == 0:
                 start_time = time.time()
-                move, move_probs = player.get_move(self.board, temp=temp, return_prob=1)
+                move, move_probs = player.get_action(self.board, temp=temp, return_prob=1)
                 print(f'one step cost {time.time() - start_time}')
             else:
-                move, move_probs = player.get_move(self.board, temp=temp, return_prob=1)
+                move, move_probs = player.get_action(self.board, temp=temp, return_prob=1)
             states.append(self.board.current_state())
             mcts_probs.append(move_probs)
-            current_players.append(self.board.get_current_player_id())
+            current_players.append(self.board.get_current_player_color())
             self.board.do_move(move)
             end, winner = self.board.game_end()
             if end:

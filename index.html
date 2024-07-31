@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoBang</title>
+    <style>
+        #board {
+            display: grid;
+            grid-template-columns: repeat(15, 40px);
+            grid-template-rows: repeat(15, 40px);
+            border: 4px solid #000;
+            background-color: #ee9a49;
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="board"></div>
+    <script>
+        const board = document.getElementById("board");
+        const size = 15;
+        let currentPlayer = 1;
+        let reward = 0;
+        let boardArray = Array(size).fill(0).map(() => Array(size).fill(0));
+        const ws = new WebSocket("ws://127.0.0.1:8888/websocket"); // 建立WebSocket连接
+
+        for (let i = 0; i < size * size; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.dataset.index = i;
+            board.appendChild(cell);
+        }
+
+        ws.onopen = function(event) {
+            console.log("Connected to WebSocket server.");
+        };
+    
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            if (data.boardArray) {
+                // 更新前端boardArray和UI
+                boardArray = data.boardArray;
+                updateBoardUI();
+            }
+            if (data.currentPlayer) {
+                // 更新当前玩家
+                currentPlayer = data.currentPlayer;
+            }
+            if (data.reward) {
+                reward = data.reward;
+            }
+            if (data.gameOver) {
+                // 游戏结束处理
+                // alert("游戏结束！");
+                // 可以在这里添加游戏结束后的逻辑，比如显示一个游戏结束的界面或重置游戏等。
+            }
+        };
+    
+        ws.onerror = function(event) {
+            console.error("WebSocket error:", event);
+        };
+    
+        ws.onclose = function(event) {
+            console.log("WebSocket connection closed:", event);
+        };
+    
+        function updateBoardUI() {
+            // 根据boardArray更新UI
+            for (let i = 0; i < size * size; i++) {
+                const cell = board.children[i];
+                const x = i % size;
+                const y = Math.floor(i / size);
+                if (boardArray[y][x] !== 0) {
+                    if (!cell.firstChild) {
+                        const disc = document.createElement('div');
+                        disc.style.width = '30px';
+                        disc.style.height = '30px';
+                        disc.style.borderRadius = '50%';
+                        disc.style.backgroundColor = boardArray[y][x] === 1 ? 'black' : 'white';
+                        cell.appendChild(disc);
+                    }
+                } else {
+                    // 清空单元格内容
+                    while (cell.firstChild) {
+                        cell.removeChild(cell.firstChild);
+                    }
+                }
+            }
+        }
+    
+        board.addEventListener('click', (event) => {
+            let reward = 0;
+            const cell = event.target;
+            // 发送当前玩家的移动到WebSocket服务器
+            const index = +cell.dataset.index;
+            ws.send(JSON.stringify({ move: index }));
+            console.log(index);
+            console.log(reward);
+            // 注意：现在移动和玩家切换都由服务器处理，所以这里不再更新boardArray和currentPlayer。
+        });
+    </script>
+    </script>
+</body>
+
+</html>
