@@ -6,12 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GoBang</title>
     <style>
+        body {
+            background-color: #ee9a49;
+        }
+
+        .main {
+            display: grid;
+            max-width: 800px;
+            grid-template-columns: auto 1fr;
+        }
+
         #board {
             display: grid;
             grid-template-columns: repeat(15, 40px);
             grid-template-rows: repeat(15, 40px);
             border: 4px solid #000;
-            background-color: #ee9a49;
+            width: 600px;
         }
 
         .cell {
@@ -22,16 +32,42 @@
             align-items: center;
             justify-content: center;
         }
+
+        .other {
+            display: grid;
+            grid-template-columns: 1fr;
+            align-content: center;
+        }
+
+        .item {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .button {
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto;
+        }
     </style>
 </head>
 
 <body>
-    <div id="board"></div>
+    <div class="main">
+        <div id="board"></div>
+        <div class="other">
+            <h2 id="game_info" class="item">正在对弈中...</h2>
+            <label id="infomation" class="item">到你了</label>
+            <button id="reset" class="button">重置棋盘</button>
+        </div>
+    </div>
     <script>
+        const from = document.getElementById("MyFrom");
         const board = document.getElementById("board");
         const size = 15;
         let currentPlayer = 1;
-        let reward = 0;
+        let input = true;
+        let winner = -1;
         let boardArray = Array(size).fill(0).map(() => Array(size).fill(0));
         const ws = new WebSocket("ws://127.0.0.1:8888/websocket"); // 建立WebSocket连接
 
@@ -42,39 +78,48 @@
             board.appendChild(cell);
         }
 
-        ws.onopen = function(event) {
+        ws.onopen = function (event) {
             console.log("Connected to WebSocket server.");
         };
-    
-        ws.onmessage = function(event) {
+
+        ws.onmessage = function (event) {
             const data = JSON.parse(event.data);
             if (data.boardArray) {
                 // 更新前端boardArray和UI
                 boardArray = data.boardArray;
                 updateBoardUI();
+                currentPlayer = currentPlayer === 1 ? 2 : 1;
+                ws.send(JSON.stringify({ player_currentPlayer: currentPlayer }));
             }
-            if (data.currentPlayer) {
-                // 更新当前玩家
-                currentPlayer = data.currentPlayer;
-            }
-            if (data.reward) {
-                reward = data.reward;
+            if (data.input != null) {
+                input = data.input === 0 ? false : true;
+                if (input) {
+                    document.getElementById("infomation").innerHTML = "到你了";
+                } else {
+                    document.getElementById("infomation").innerHTML = "AI推理中...";
+                }
             }
             if (data.gameOver) {
                 // 游戏结束处理
-                // alert("游戏结束！");
-                // 可以在这里添加游戏结束后的逻辑，比如显示一个游戏结束的界面或重置游戏等。
+                winner = data.winner;
+                if (winner === 1) {
+                    winner = "黑方";
+                } else if (winner === 2) {
+                    winner = "白方";
+                }
+                document.getElementById("game_info").innerHTML = "游戏结束，胜利方：" + winner;
+                document.getElementById("infomation").innerHTML = "对弈结束";
             }
         };
-    
-        ws.onerror = function(event) {
+
+        ws.onerror = function (event) {
             console.error("WebSocket error:", event);
         };
-    
-        ws.onclose = function(event) {
+
+        ws.onclose = function (event) {
             console.log("WebSocket connection closed:", event);
         };
-    
+
         function updateBoardUI() {
             // 根据boardArray更新UI
             for (let i = 0; i < size * size; i++) {
@@ -98,19 +143,20 @@
                 }
             }
         }
-    
+
+        document.getElementById('reset').addEventListener('click', function() {
+            ws.send(JSON.stringify({ reset: true }));
+            document.getElementById("game_info").innerHTML = "正在对弈中...";
+        });
         board.addEventListener('click', (event) => {
-            let reward = 0;
-            const cell = event.target;
-            // 发送当前玩家的移动到WebSocket服务器
-            const index = +cell.dataset.index;
-            ws.send(JSON.stringify({ move: index }));
-            console.log(index);
-            console.log(reward);
-            // 注意：现在移动和玩家切换都由服务器处理，所以这里不再更新boardArray和currentPlayer。
+            if (input) {
+                const cell = event.target;
+                const index = +cell.dataset.index;
+                ws.send(JSON.stringify({ move: index }));
+                input = false;
+            }
         });
     </script>
     </script>
 </body>
-
 </html>

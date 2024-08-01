@@ -4,7 +4,9 @@ import pickle
 import time
 from net import PolicyValueNet
 from config import CONFIG
+import torch
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class TrainPipeline:
     def __init__(self, init_model=None):
@@ -18,13 +20,13 @@ class TrainPipeline:
         self.game_batch_num = CONFIG['game_batch_num']
         if init_model:
             try:
-                self.policy_value = PolicyValueNet(init_model)
+                self.policy_value = PolicyValueNet(init_model, device=device)
                 print("Loaded model from {}".format(init_model))
             except:
-                self.policy_value = PolicyValueNet()
+                self.policy_value = PolicyValueNet(device=device)
                 print(f'No model found at {init_model}, use initial model')
         else:
-            self.policy_value = PolicyValueNet()
+            self.policy_value = PolicyValueNet(device=device)
             print('No model found, use initial model')
     
     def policy_update(self):
@@ -88,5 +90,5 @@ class TrainPipeline:
 
 
 if __name__ == '__main__':
-    train_pipeline = TrainPipeline()
+    train_pipeline = TrainPipeline(CONFIG['model_path'])
     train_pipeline.run()

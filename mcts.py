@@ -87,7 +87,7 @@ class MCTS:
                 leaf_value = 0.0
             else:
                 leaf_value = (
-                    1.0 if winner == state.get_current_player_id() else -1.0
+                    1.0 if winner == state.get_current_player_color() else -1.0
                 )
         node.update_recursive(-leaf_value)
     

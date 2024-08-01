@@ -7,6 +7,9 @@ from game import Game, Board, move_action2move_id, move_id2move_action
 from net import PolicyValueNet
 from mcts import MCTSPlayer
 from config import CONFIG
+import torch
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class CollectPipeline:
     def __init__(self, init_model=None):
@@ -21,10 +24,10 @@ class CollectPipeline:
 
     def load_model(self, model_path=CONFIG['model_path']):
         try:
-            self.policy_value = PolicyValueNet(model_file=model_path)
+            self.policy_value = PolicyValueNet(model_file=model_path, device=device)
             print('load model from {}'.format(model_path))
         except:
-            self.policy_value = PolicyValueNet()
+            self.policy_value = PolicyValueNet(device=device)
             print('load model failed, use initial policy')
         self.mcts = MCTSPlayer(self.policy_value.policy_value_fn,
             c_puct=self.c_puct,

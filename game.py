@@ -202,15 +202,8 @@ class Board:
         self.running = False
         self.winner = None
 
-    def init_board(self, start_player: str='people'):
-        if start_player == 'people':
-            self.id2color = {'people': 1, 'ai': 2}
-            self.color2id = {1: 'people', 2: 'ai'}
-        elif start_player == 'ai':
-            self.id2color = {'people': 2, 'ai': 1}
-            self.color2id = {1: 'ai', 2: 'people'}
-        self.current_player_color = self.id2color['people']
-        self.current_player_id = self.color2id[1]
+    def init_board(self, start_player: int=1):
+        self.current_player_color = start_player
         self.state = copy.deepcopy(board_init)
         self.last_move = -1
         self.running = False
@@ -249,20 +242,21 @@ class Board:
         move_action = move_id2move_action[move]
         x, y = move_action
         state = copy.deepcopy(self.state)
-        if is_win(state, self.current_player_color, (x, y), 'transverse') or\
-          is_win(state, self.current_player_color, (x, y), 'vertical') or\
-          is_win(state, self.current_player_color, (x, y), 'diagonal') or\
-          is_win(state, self.current_player_color, (x, y), 'anti-diagonal'):
-            self.winner = self.current_player_id
         state[x][y] = self.current_player_color
         self.current_player_color = 1 if self.current_player_color == 2 else 2
-        self.current_player_id = 'ai' if self.current_player_id == 'people' else 'people'
         self.last_move = move
         self.state = state
     
     def has_a_winner(self):
+        color = 1 if self.current_player_color == 2 else 2
+        if self.last_move != -1:
+            if is_win(self.state, color, move_id2move_action[self.last_move], 'transverse') or\
+            is_win(self.state, color, move_id2move_action[self.last_move], 'vertical') or\
+            is_win(self.state, color, move_id2move_action[self.last_move], 'diagonal') or\
+            is_win(self.state, color, move_id2move_action[self.last_move], 'anti-diagonal'):
+                self.winner = color
         if self.winner is not None:
-            return True, self.id2color[self.winner]
+            return True, self.winner
         elif all(0 not in row for row in self.state):
             return False, -1
         return False, -1
@@ -277,37 +271,32 @@ class Board:
     
     def get_current_player_color(self):
         return self.current_player_color
-    
-    def get_current_player_id(self):
-        return self.current_player_id
 
 class Game:
     def __init__(self, board):
         self.board = board
     
-    def graphic(self, player1_color, player2_color):
+    def graphic(self, board, player1_color, player2_color):
         print('player1 VS player2')
-        print(f'{self.board.color2id[player1_color]} VS {self.board.color2id[player2_color]}')
+        print(f'{board.color2id[player1_color]} VS {board.color2id[player2_color]}')
         print(f'{player1_color} VS {player2_color}')
-        print_board(list2array(self.board.state))
+        print_board(list2array(board.state))
     
-    def start_play(self, player1, player2, start_player='people', is_display=True):
-        if start_player not in ('people', 'ai'):
-            raise Exception('start player must be people or ai')
+    def start_play(self, player1, player2, start_player=1, is_display=True):
         self.board.init_board(start_player)
         p1, p2 = 1, 2
         player1.set_player_ind(1)
         player2.set_player_ind(2)
         players = {p1: player1, p2: player2}
         if is_display:
-            self.graphic(player1.player, player2.player)
+            self.graphic(self.board, player1.player, player2.player)
         while True:
             current_player = self.board.get_current_player_color()
             player_in_turn = players[current_player]
             move = player_in_turn.get_action(self.board)
             self.board.do_move(move)
             if is_display:
-                self.graphic(player1.player, player2.player)
+                self.graphic(self.board, player1.player, player2.player)
             end, winner = self.board.game_end()
             if end:
                 print('Game Over')
@@ -355,15 +344,21 @@ class Game:
 if __name__ == '__main__':
     import random
     class people:
+        def __init__(self, x) -> None:
+            self.x = x
+            self.count = 0
+            self.ys = [7, 8, 9, 10, 11]
         def get_action(self, board):
-            return random.choice(board.availables)
+            y = self.ys[self.count]
+            self.count += 1
+            return move_action2move_id[(self.x, y)]
         
         def set_player_ind(self, p):
             self.player = p
     
-    people1 = people()
-    people2 = people()
+    people1 = people(6)
+    people2 = people(7)
     board = Board()
     game = Game(board)
-    for i in range(20):
-        game.start_play(people1, people2)
+    # for i in range(20):
+    game.start_play(people2, people1)
