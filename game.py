@@ -202,8 +202,15 @@ class Board:
         self.running = False
         self.winner = None
 
-    def init_board(self, start_player: int=1):
-        self.current_player_color = start_player
+    def init_board(self, start_player: str='people'):
+        if start_player == 'people':
+            self.id2color = {'people': 1, 'ai': 2}
+            self.color2id = {1: 'people', 2: 'ai'}
+        elif start_player == 'ai':
+            self.id2color = {'people': 2, 'ai': 1}
+            self.color2id = {1: 'ai', 2: 'people'}
+        self.current_player_color = self.id2color['people']
+        self.current_player_id = self.color2id[1]
         self.state = copy.deepcopy(board_init)
         self.last_move = -1
         self.running = False
@@ -244,6 +251,7 @@ class Board:
         state = copy.deepcopy(self.state)
         state[x][y] = self.current_player_color
         self.current_player_color = 1 if self.current_player_color == 2 else 2
+        self.current_player_id = 'ai' if self.current_player_id == 'people' else 'people'
         self.last_move = move
         self.state = state
     
@@ -251,9 +259,9 @@ class Board:
         color = 1 if self.current_player_color == 2 else 2
         if self.last_move != -1:
             if is_win(self.state, color, move_id2move_action[self.last_move], 'transverse') or\
-            is_win(self.state, color, move_id2move_action[self.last_move], 'vertical') or\
-            is_win(self.state, color, move_id2move_action[self.last_move], 'diagonal') or\
-            is_win(self.state, color, move_id2move_action[self.last_move], 'anti-diagonal'):
+              is_win(self.state, color, move_id2move_action[self.last_move], 'vertical') or\
+              is_win(self.state, color, move_id2move_action[self.last_move], 'diagonal') or\
+              is_win(self.state, color, move_id2move_action[self.last_move], 'anti-diagonal'):
                 self.winner = color
         if self.winner is not None:
             return True, self.winner
@@ -271,6 +279,9 @@ class Board:
     
     def get_current_player_color(self):
         return self.current_player_color
+    
+    def get_current_player_id(self):
+        return self.current_player_id
 
 class Game:
     def __init__(self, board):
@@ -282,7 +293,9 @@ class Game:
         print(f'{player1_color} VS {player2_color}')
         print_board(list2array(board.state))
     
-    def start_play(self, player1, player2, start_player=1, is_display=True):
+    def start_play(self, player1, player2, start_player='people', is_display=True):
+        if start_player not in ('people', 'ai'):
+            raise Exception('start player must be people or ai')
         self.board.init_board(start_player)
         p1, p2 = 1, 2
         player1.set_player_ind(1)

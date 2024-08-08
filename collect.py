@@ -8,6 +8,7 @@ from net import PolicyValueNet
 from mcts import MCTSPlayer
 from config import CONFIG
 import torch
+import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -21,6 +22,8 @@ class CollectPipeline:
         self.buffer_size = CONFIG['buffer_size']
         self.data_buffer = deque(maxlen=self.buffer_size)
         self.iters = 0
+        self.board_height = 15
+        self.board_width = 15
 
     def load_model(self, model_path=CONFIG['model_path']):
         try:
@@ -34,8 +37,27 @@ class CollectPipeline:
             n_playout=self.n_playout,
             is_selfplay=True)
         
-    def get_equl_data(Self, play_data):
-        pass
+    def get_equi_data(self, play_data):
+        """augment the data set by rotation and flipping
+        play_data: [(state, mcts_prob, winner_z), ..., ...]
+        """
+        extend_data = []
+        for state, mcts_prob, winner in play_data:
+            for i in [1, 2, 3, 4]:
+                # rotate counterclockwise
+                equi_state = np.array([np.rot90(s, i) for s in state])
+                equi_mcts_prob = np.rot90(np.flipud(
+                    mcts_prob.reshape(self.board_height, self.board_width)), i)
+                extend_data.append((equi_state,
+                                    np.flipud(equi_mcts_prob).flatten(),
+                                    winner))
+                # flip horizontally
+                equi_state = np.array([np.fliplr(s) for s in equi_state])
+                equi_mcts_prob = np.fliplr(equi_mcts_prob)
+                extend_data.append((equi_state,
+                                    np.flipud(equi_mcts_prob).flatten(),
+                                    winner))
+        return extend_data
 
     def collect_selfplay_data(self, n_game=1):
         for i in range(n_game):
@@ -44,6 +66,9 @@ class CollectPipeline:
                 self.mcts, is_display=False, temp=self.temp)
             play_data = list(play_data)[:]
             self.episode_len = len(play_data)
+            print('getting equi data......tips: have {} numbers'.format(self.episode_len))
+            equi_data = self.get_equi_data(play_data)
+            print('geted equi data')
             if os.path.exists(CONFIG['train_data_buffer_path']):
                 while True:
                     try:
@@ -54,12 +79,14 @@ class CollectPipeline:
                             del data_file
                             self.iters += 1
                             self.data_buffer.extend(play_data)
+                            self.data_buffer.extend(equi_data)
                         print('load data from {}'.format(CONFIG['train_data_buffer_path']))
                         break
                     except:
                         time.sleep(30)
             else:
                 self.data_buffer.extend(play_data)
+                self.data_buffer.extend(equi_data)
                 self.iters += 1
             
             data_file = {

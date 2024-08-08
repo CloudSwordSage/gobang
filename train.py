@@ -4,9 +4,7 @@ import pickle
 import time
 from net import PolicyValueNet
 from config import CONFIG
-import torch
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class TrainPipeline:
     def __init__(self, init_model=None):
@@ -18,15 +16,17 @@ class TrainPipeline:
         self.kl_targ = CONFIG['kl_targ']
         self.check_freq = 100
         self.game_batch_num = CONFIG['game_batch_num']
+        with open('start.txt', 'r') as f:
+            self.start = int(f.read())
         if init_model:
             try:
-                self.policy_value = PolicyValueNet(init_model, device=device)
+                self.policy_value = PolicyValueNet(init_model)
                 print("Loaded model from {}".format(init_model))
             except:
-                self.policy_value = PolicyValueNet(device=device)
+                self.policy_value = PolicyValueNet()
                 print(f'No model found at {init_model}, use initial model')
         else:
-            self.policy_value = PolicyValueNet(device=device)
+            self.policy_value = PolicyValueNet()
             print('No model found, use initial model')
     
     def policy_update(self):
@@ -58,14 +58,14 @@ class TrainPipeline:
         explained_var_old = (1 - np.var(np.array(winner_batch) - old_v.flatten()) / np.var(np.array(winner_batch)))
         explained_var_new = (1 - np.var(np.array(winner_batch) - new_v.flatten()) / np.var(np.array(winner_batch)))
 
-        print('kl: {:.5f}, lr_multiplier: {:.3f}'.format(kl, self.lr_multiplier))
-        print('loss: {:.5f}, entropy: {:.5f}'.format(loss, entropy))
+        print('kl: {:.5f}, \t lr_multiplier: {:.3f}'.format(kl, self.lr_multiplier))
+        print('loss: {:.5f}, \t entropy: {:.5f}'.format(loss, entropy))
         print('explained_var: {:.3f}, {:.3f}'.format(np.mean(explained_var_old), np.mean(explained_var_new)))
         return loss, entropy
 
     def run(self):
         try:
-            for i in range(self.game_batch_num):
+            for i in range(self.start, self.game_batch_num):
                 time.sleep(30)
                 while True:
                     try:
@@ -78,13 +78,18 @@ class TrainPipeline:
                         break
                     except:
                         time.sleep(30)
+                print()
+                print('-'*30)
+                print(f'epoch: {i + 1}', end='\t')
                 print(f'step: {self.iters}')
                 if len(self.data_buffer) > self.batch_size:
                     loss, entropy = self.policy_update()
                 self.policy_value.save_model(CONFIG['model_path'])
+                with open('start.txt', 'w') as f:
+                    f.write(str(i + 1))
                 if (i + 1) % self.check_freq == 0:
                     print(f'current selfplay batch: {i + 1}')
-                    self.policy_value.save_model('./model/current_model.pth')
+                    self.policy_value.save_model(f'./model/current_model_batch_{i + 1}.pth')
         except KeyboardInterrupt:
             print('\n\rexit')
 
