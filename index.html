@@ -69,7 +69,7 @@
         let input = true;
         let winner = -1;
         let boardArray = Array(size).fill(0).map(() => Array(size).fill(0));
-        const ws = new WebSocket("ws://127.0.0.1:8888/websocket"); // 建立WebSocket连接
+        const ws = new WebSocket("ws://127.0.0.1:8080/websocket"); // 建立WebSocket连接
 
         for (let i = 0; i < size * size; i++) {
             const cell = document.createElement('div');
