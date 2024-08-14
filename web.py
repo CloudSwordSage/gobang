@@ -20,11 +20,11 @@ from net import PolicyValueNet
 define('debug', type=bool, default=False, help='run in debug mode')
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model_file = ''
+model_file = './model/current_model_batch_5500.pth'
 
 Net = PolicyValueNet(model_file=model_file, device=device)
 game = Board()
-mcts_player = MCTS(policy_value_fn=Net.policy_value_fn, c_puct=5, n_playout=5)
+mcts_player = MCTS(policy_value_fn=Net.policy_value_fn, c_puct=5, n_playout=2000)
 game.init_board()
 
 class MainHandler(tornado.web.RequestHandler):
