@@ -16,10 +16,10 @@
    | new_explained_var(新解释方差) | 0.895 |
 
    ---
-   
+
    以下是两轮游玩截图，黑子玩家
-   ![v1](d:/UserData/gobang/info/v1.png)
-   ![v2](d:/UserData/gobang/info/v2.png)
+   ![v1](./info/v1.png)
+   ![v2](./info/v2.png)
 
 2024-8-13 18:42
    好耶！！微重构，将收集与训练代码丢一起了，使用多进程收集数据，单进程训练，可以通过 -cn 指定进程数，默认是4个
